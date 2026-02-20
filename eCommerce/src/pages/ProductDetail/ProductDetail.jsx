@@ -1,0 +1,290 @@
+import React, { useState } from 'react'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Rate, InputNumber, Button, Skeleton, Typography, Avatar, Pagination, Modal, Input } from 'antd'
+import { ShoppingCartOutlined, UserOutlined } from '@ant-design/icons'
+import toast from 'react-hot-toast'
+import { useForm, Controller } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
+import { getProductById, getProductReviews, addProductReview } from '../../apis/product.api'
+import { addToCart } from '../../apis/cart.api'
+import { reviewSchema } from '../../utils/reviewValidation'
+
+const { Title, Text, Paragraph } = Typography
+
+const ProductDetail = () => {
+  const { productId } = useParams()
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [quantity, setQuantity] = useState(1)
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const reviewPage = Number(searchParams.get('page')) || 1
+  const queryClient = useQueryClient()
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(reviewSchema),
+    defaultValues: {
+      rating: 0,
+      comment: '',
+    },
+  })
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => getProductById(productId),
+    enabled: !!productId,
+  })
+
+  const { data: reviewsData } = useQuery({
+    queryKey: ['reviews', productId, reviewPage],
+    queryFn: () => getProductReviews(productId, { pageNum: reviewPage, pageSize: 5 }),
+    enabled: !!productId,
+    keepPreviousData: true,
+  })
+
+  const addToCartMutation = useMutation({
+    mutationFn: (body) => addToCart(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cart'] })
+      toast.success('Added to cart')
+    },
+  })
+
+  const addReviewMutation = useMutation({
+    mutationFn: (data) => addProductReview(productId, data),
+    onSuccess: () => {
+      toast.success('Review submitted successfully')
+      setIsReviewModalOpen(false)
+      reset()
+      queryClient.invalidateQueries({ queryKey: ['reviews', productId] })
+      queryClient.invalidateQueries({ queryKey: ['product', productId] })
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || 'Failed to submit review')
+    },
+  })
+
+  const handleBuyNow = async () => {
+    try {
+      await addToCartMutation.mutateAsync({ productId, quantity })
+      navigate('/cart', { state: { selectedProductId: productId } })
+    } catch (error) {
+      // Error handled by mutation onError
+    }
+  }
+
+  const product = data?.data
+  const reviews = reviewsData?.data?.items || []
+  const totalReviews = reviewsData?.data?.meta?.totalElements || 0
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4 bg-white mt-4 rounded-sm shadow-sm">
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="w-full md:w-[35%]">
+            <Skeleton.Image active className="!w-full !h-[400px]" />
+          </div>
+          <div className="w-full md:w-[65%] space-y-4">
+            <Skeleton active paragraph={{ rows: 6 }} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!product) return null
+
+  return (
+    <div className="container mx-auto py-8 px-4 bg-white mt-4 rounded-sm shadow-sm">
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Left Side - Image */}
+        <div className="w-full md:w-[35%]">
+          <div className="relative w-full pt-[100%] overflow-hidden border border-gray-200 rounded-md">
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className="absolute top-0 left-0 w-full h-full object-contain p-2"
+            />
+          </div>
+        </div>
+
+        {/* Right Side - Details */}
+        <div className="w-full md:w-[65%] flex flex-col gap-4">
+          <Title level={3} className="!mb-0 font-medium">
+            {product.name}
+          </Title>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1 border-b border-b-[#ee4d2d] pb-1">
+              <span className="text-lg font-bold text-[#ee4d2d] border-b border-b-[#ee4d2d]">
+                {product.averageRating?.toFixed(1)}
+              </span>
+              <Rate
+                disabled
+                allowHalf
+                defaultValue={product.averageRating}
+                className="text-sm text-[#ee4d2d]"
+                style={{ fontSize: 14 }}
+              />
+            </div>
+            <div className="flex h-6 items-center gap-1 border-l border-gray-300 pl-4">
+              <span className="text-lg font-medium border-b border-b-black">
+                {product.ratingCount}
+              </span>
+              <span className="text-sm text-gray-500">Ratings</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 rounded-sm bg-gray-50 p-4">
+            {product.originalPrice && product.discountPercentage > 0 && (
+              <Text delete className="text-base text-gray-500">
+                ₹{product.originalPrice.toLocaleString()}
+              </Text>
+            )}
+            <Text className="text-3xl font-medium text-[#ee4d2d]">
+              ₹{product.price.toLocaleString()}
+            </Text>
+            {product.discountPercentage > 0 && (
+              <span className="rounded-sm bg-[#ee4d2d] px-1 py-0.5 text-xs font-bold uppercase text-white">
+                -{product.discountPercentage}%
+              </span>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center gap-8">
+            <span className="w-24 text-gray-500">Quantity</span>
+            <div className="flex items-center gap-4">
+              <InputNumber
+                min={1}
+                max={product.stockQuantity}
+                defaultValue={1}
+                value={quantity}
+                onChange={(value) => setQuantity(value)}
+              />
+              <span className="text-sm text-gray-500">
+                {product.stockQuantity} pieces available
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center gap-4">
+            <Button
+              type="primary"
+              ghost
+              icon={<ShoppingCartOutlined />}
+              size="large"
+              className="h-12 px-8 !border-[#ee4d2d] !bg-[#ee4d2d]/10 !text-[#ee4d2d]"
+              onClick={() => addToCartMutation.mutate({ productId, quantity })}
+              loading={addToCartMutation.isPending}
+            >
+              Add To Cart
+            </Button>
+            <Button
+              type="primary"
+              size="large"
+              className="h-12 px-12 !bg-[#ee4d2d]"
+              onClick={handleBuyNow}
+              loading={addToCartMutation.isPending}
+            >
+              Buy Now
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 border-t pt-4">
+        <Title level={4}>Product Description</Title>
+        <Paragraph className="whitespace-pre-line text-gray-600 text-lg">
+          {product.description?.replace(/\|/g, '\n✔️ ')}
+        </Paragraph>
+      </div>
+
+      <div className="mt-8 border-t pt-4">
+        <div className="flex items-center justify-between">
+          <Title level={4} className="!mb-0">Product Reviews</Title>
+          <Button type="primary" onClick={() => setIsReviewModalOpen(true)} className="bg-[#ee4d2d]">
+            Write a Review
+          </Button>
+        </div>
+        <div className="flex flex-col gap-6 mt-4">
+          {reviews.length > 0 ? (
+            <>
+              {reviews.map((review) => (
+              <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <Avatar icon={<UserOutlined />} size="small" />
+                  <Text strong>{review.userFullName}</Text>
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Rate disabled defaultValue={review.rating} style={{ fontSize: 14 }} />
+                  <Text type="secondary" className="text-xs">
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </Text>
+                </div>
+                {review.comment && <Paragraph className="text-gray-600 mb-0">{review.comment}</Paragraph>}
+              </div>
+            ))
+              }
+              <div className="flex justify-end">
+                <Pagination
+                  current={reviewPage}
+                  pageSize={5}
+                  total={totalReviews}
+                  onChange={(page) => {
+                    const newParams = new URLSearchParams(searchParams)
+                    newParams.set('page', page)
+                    setSearchParams(newParams)
+                  }}
+                  showSizeChanger={false}
+                />
+              </div>
+            </>
+          ) : (
+            <Text type="secondary">No reviews yet.</Text>
+          )}
+        </div>
+      </div>
+
+      <Modal
+        title="Write a Review"
+        open={isReviewModalOpen}
+        onCancel={() => {
+          setIsReviewModalOpen(false)
+          reset()
+        }}
+        footer={null}
+      >
+        <form onSubmit={handleSubmit((data) => addReviewMutation.mutate(data))} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Rating</label>
+            <Controller
+              name="rating"
+              control={control}
+              render={({ field }) => <Rate {...field} />}
+            />
+            {errors.rating && <span className="text-xs text-red-500">{errors.rating.message}</span>}
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Comment</label>
+            <Controller
+              name="comment"
+              control={control}
+              render={({ field }) => <Input.TextArea {...field} rows={4} status={errors.comment ? 'error' : ''} />}
+            />
+            {errors.comment && <span className="text-xs text-red-500">{errors.comment.message}</span>}
+          </div>
+          <Button type="primary" htmlType="submit" loading={addReviewMutation.isPending} className="w-full bg-[#ee4d2d]">
+            Submit Review
+          </Button>
+        </form>
+      </Modal>
+    </div>
+  )
+}
+
+export default ProductDetail
