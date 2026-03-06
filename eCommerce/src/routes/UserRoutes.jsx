@@ -1,3 +1,4 @@
+import React from 'react'
 import UserLayout from "../layouts/UserLayout";
 import Home from "../pages/Home/Home";
 import ProductsPage from "../pages/ProductsPage/ProductsPage";
@@ -7,7 +8,9 @@ import OrderHistory from "../pages/OrderHistory/OrderHistory";
 import Checkout from "../pages/Checkout/Checkout";
 import OrderDetail from "../pages/OrderDetail/OrderDetail";
 import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute";
-
+import SimilarProducts from "../pages/SimilarProducts/SimilarProducts";
+import ProductRecommendations from "../pages/ProductRecommendations/ProductRecommendations";
+import UserRecommendations from "../pages/UserRecommendations/UserRecommendations";
 
 const userRoutes = [
   {
@@ -23,8 +26,16 @@ const userRoutes = [
         element: <ProductsPage />,
       },
       {
+        path: "products/:productId/similar",
+        element: <SimilarProducts />,
+      },
+      {
         path: "products/:productId",
         element: <ProductDetail />,
+      },
+      {
+        path: "products/:productId/recommendations",
+        element: <ProductRecommendations />,
       },
       {
         element: <ProtectedRoute />,
@@ -32,6 +43,10 @@ const userRoutes = [
           {
             path: "cart",
             element: <Cart />,
+          },
+          {
+            path: "recommendations",
+            element: <UserRecommendations />,
           },
           {
             path: "checkout",

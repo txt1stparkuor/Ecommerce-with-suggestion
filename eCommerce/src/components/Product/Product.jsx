@@ -1,24 +1,24 @@
-import React from 'react'
-import { Card, Rate, Typography } from 'antd'
-import { useNavigate } from 'react-router-dom'
-
-const { Text } = Typography
+import React from "react";
+import { Card, Rate, Typography } from "antd";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+const { Text } = Typography;
 
 const Product = ({ product }) => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   return (
     <Card
       hoverable
-      onClick={() => {
-        navigate(`/products/${product.id}`)
-        window.scrollTo(0, 0)
-      }}
       className="group overflow-hidden border border-gray-200 transition-all hover:border-[#ee4d2d] hover:shadow-md"
-      styles={{ body: { padding: '8px' } }}
+      styles={{ body: { padding: "8px" } }}
       cover={
         <div className="relative h-48 w-full overflow-hidden bg-gray-100">
           <img
+            onClick={() => {
+              navigate(`/products/${product.id}`);
+              window.scrollTo(0, 0);
+            }}
             alt={product.name}
             src={product.imageUrl}
             className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
@@ -35,6 +35,10 @@ const Product = ({ product }) => {
         <Text
           className="text-sm text-gray-800 line-clamp-2"
           title={product.name}
+          onClick={() => {
+            navigate(`/products/${product.id}`);
+            window.scrollTo(0, 0);
+          }}
         >
           {product.name}
         </Text>
@@ -54,8 +58,17 @@ const Product = ({ product }) => {
           </div>
         </div>
       </div>
+      <div className="mt-2 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <Link
+          to={`/products/${product.id}/similar`}
+          className="text-[#ee4d2d] text-base"
+          onClick={() => window.scrollTo(0, 0)}
+        >
+          Find similar product
+        </Link>
+      </div>
     </Card>
-  )
-}
+  );
+};
 
-export default Product
+export default Product;

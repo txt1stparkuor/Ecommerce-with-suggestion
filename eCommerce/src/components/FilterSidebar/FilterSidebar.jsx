@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Layout, Menu, InputNumber, Button, Rate, Divider, Typography } from 'antd'
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import { getCategoriesWithProducts } from '../../apis/category.api'
+import { getAllCategories } from '../../apis/category.api'
 import { priceRangeSchema } from '../../utils/filterValidation'
 
 const { Sider } = Layout
@@ -12,8 +12,8 @@ const { Title } = Typography
 
 const FilterSidebar = memo(({ queryParams, onFilterChange, onClearFilters }) => {
   const { data: categoriesData } = useQuery({
-    queryKey: ['categories', 'with-products'],
-    queryFn: getCategoriesWithProducts,
+    queryKey: ['categories'],
+    queryFn: getAllCategories,
   })
 
   const {

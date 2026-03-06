@@ -15,6 +15,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -24,6 +25,7 @@ import {
   createProduct,
   updateProduct,
   getProductById,
+  exportAmazonCSV, // Đảm bảo đã import hàm này
 } from "../../../apis/product.api";
 import useDebounce from "../../../hooks/useDebounce";
 import ProductForm from "../../../components/ProductForm/ProductForm";
@@ -36,8 +38,8 @@ const ProductManagement = () => {
   const queryClient = useQueryClient();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false); // State xử lý loading khi tải file
   const [editingProduct, setEditingProduct] = useState(null);
-
   const [searchTerm, setSearchTerm] = useState(
     searchParams.get("keyword") || ""
   );
@@ -67,6 +69,48 @@ const ProductManagement = () => {
     queryFn: () => getProducts({ keyword, pageNum: page, pageSize }),
     keepPreviousData: true,
   });
+
+  // Logic xử lý Xuất file CSV
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      // Gọi API - Lúc này 'result' chính là cái Blob nhờ vào interceptor bóc tách response.data
+      const result = await exportAmazonCSV();
+      console.log(result)
+      // Kiểm tra xem dữ liệu có tồn tại không
+      if (!result) {
+        toast.error("No data received");
+        return;
+      }
+
+      // Tạo Blob trực tiếp từ result
+      const blob = new Blob([result], { type: "text/csv;charset=utf-8;" });
+
+      // Debug: Kiểm tra size của blob, nếu > 0 là thành công
+      console.log("Blob size:", blob.size);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `amazon_export_${new Date().getTime()}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+
+      // Dọn dẹp
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("CSV exported successfully!");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export CSV. Check console for details.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (body) => createProduct(body),
@@ -144,8 +188,8 @@ const ProductManagement = () => {
             <p>
               <strong>Description:</strong>
             </p>
-            <p className="whitespace-pre-line">
-              {res.data.description?.replace(/\|/g, "\n- ")}
+            <p className="whitespace-pre-line text-gray-600">
+              {res.data.description?.replace(/\|/g, "\n✔️ ")}
             </p>
             <p>
               <strong>Price:</strong> ₹{res.data.price?.toLocaleString()}
@@ -154,9 +198,18 @@ const ProductManagement = () => {
               <strong>Stock:</strong> {res.data.stockQuantity}
             </p>
             <p>
-              <strong>Category:</strong> {res.data.categoryName}
+              <strong>Category:</strong>{" "}
+              {res.data.categoryPath?.replace(/\|/g, " > ")}
             </p>
-            {res.data.imageUrl && <Image src={res.data.imageUrl} width={200} />}
+            {res.data.imageUrl && (
+              <div className="mt-4">
+                <Image
+                  src={res.data.imageUrl}
+                  width={200}
+                  className="rounded-lg shadow"
+                />
+              </div>
+            )}
           </div>
         ),
         onOk() {},
@@ -190,6 +243,7 @@ const ProductManagement = () => {
           height={60}
           src={imageUrl || "https://via.placeholder.com/150"}
           alt="product"
+          className="rounded shadow-sm"
           style={{ objectFit: "cover" }}
         />
       ),
@@ -210,8 +264,15 @@ const ProductManagement = () => {
     { title: "Stock", dataIndex: "stockQuantity", key: "stockQuantity" },
     {
       title: "Category",
-      dataIndex: "categoryName",
-      key: "categoryName",
+      dataIndex: "categoryPath",
+      key: "categoryPath",
+      width: "20%",
+      ellipsis: true,
+      render: (path) => (
+        <span className="text-xs text-gray-500">
+          {path?.replace(/\|/g, " > ")}
+        </span>
+      ),
     },
     {
       title: "Action",
@@ -221,10 +282,12 @@ const ProductManagement = () => {
           <Button
             icon={<EyeOutlined />}
             onClick={() => handleViewProduct(record.id)}
+            title="View Details"
           />
           <Button
             icon={<EditOutlined />}
             onClick={() => handleEditProduct(record.id)}
+            title="Edit Product"
           />
           <Popconfirm
             title="Delete the product"
@@ -237,6 +300,7 @@ const ProductManagement = () => {
               danger
               icon={<DeleteOutlined />}
               loading={deleteMutation.isPending}
+              title="Delete Product"
             />
           </Popconfirm>
         </Space>
@@ -245,21 +309,37 @@ const ProductManagement = () => {
   ];
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <Title level={2}>Product Management</Title>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          className="bg-[#ee4d2d]"
-          onClick={handleAddProduct}
-        >
-          Add Product
-        </Button>
+    <div className="p-4 bg-white rounded-lg shadow-sm">
+      <div className="flex justify-between items-center mb-6">
+        <Title level={2} style={{ margin: 0 }}>
+          Product Management
+        </Title>
+        <Space size="small">
+          {/* NÚT EXPORT CHO AI */}
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={handleExportCSV}
+            loading={isExporting}
+            className="flex items-center border-green-500 text-green-600 hover:text-green-700 hover:border-green-700"
+          >
+            Export for AI
+          </Button>
+
+          {/* NÚT THÊM SẢN PHẨM */}
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            className="bg-[#ee4d2d] flex items-center"
+            onClick={handleAddProduct}
+          >
+            Add Product
+          </Button>
+        </Space>
       </div>
-      <div className="mb-4">
+
+      <div className="mb-6">
         <Search
-          placeholder="Search by product name"
+          placeholder="Search by product name..."
           allowClear
           size="large"
           onChange={handleSearchChange}
@@ -267,6 +347,7 @@ const ProductManagement = () => {
           className="max-w-md"
         />
       </div>
+
       <Table
         columns={columns}
         dataSource={productsData?.data?.items || []}
@@ -279,7 +360,9 @@ const ProductManagement = () => {
         }}
         loading={isLoading}
         onChange={handleTableChange}
+        bordered
       />
+
       {isModalOpen && (
         <ProductForm
           open={isModalOpen}

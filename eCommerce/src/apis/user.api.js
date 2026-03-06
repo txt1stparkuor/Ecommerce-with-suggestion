@@ -9,6 +9,8 @@ const userApi = () => ({
     api.put(ApiConstant.users.getById(userId), data),
   deleteUser: async (userId) => api.delete(ApiConstant.users.getById(userId)),
   createUser: async (data) => api.post(ApiConstant.users.base, data),
+  getUserRecommendations: async (params) =>
+    api.get(ApiConstant.users.recommendations, { params }),
 });
 
 export const {
@@ -18,4 +20,5 @@ export const {
   updateUser,
   deleteUser,
   createUser,
+  getUserRecommendations,
 } = userApi();

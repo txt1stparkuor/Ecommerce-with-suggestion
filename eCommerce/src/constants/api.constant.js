@@ -9,16 +9,21 @@ export const ApiConstant = {
   categories: {
     base: "/categories",
     withProducts: "/categories/with-products",
+    leaf: "/categories/leaf",
   },
   products: {
     base: "/products",
     getById: (productId) => `/products/${productId}`,
     getReviews: (productId) => `/products/${productId}/reviews`,
+    getRecommendations: (productId) => `/products/${productId}/recommendations`,
+    getRecommendationsHybrid: (productId) => `/products/${productId}/recommendations/hybrid`,
+    exportAmazonCSV: "/export/amazon.csv"
   },
   users: {
     base: "/users",
     getById: (userId) => `/users/${userId}`,
     getCurrentUser: "/users/me",
+    recommendations: "/users/recommendations",
   },
   images: {
     base: "/images",

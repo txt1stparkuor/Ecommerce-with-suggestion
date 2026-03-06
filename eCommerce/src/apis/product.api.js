@@ -12,9 +12,22 @@ const productApi = () => ({
     api.post(ApiConstant.products.getReviews(productId), data),
   deleteProduct: async (productId) =>
     api.delete(ApiConstant.products.getById(productId)),
-  createProduct: async (data) => apiDefaultUpload.post(ApiConstant.products.base, data),
+  createProduct: async (data) =>
+    apiDefaultUpload.post(ApiConstant.products.base, data),
   updateProduct: async (productId, data) =>
     apiDefaultUpload.put(ApiConstant.products.getById(productId), data),
+  getSimilarProducts: async (productId, params) =>
+    apiDefault.get(ApiConstant.products.getRecommendations(productId), {
+      params,
+    }),
+  getProductRecommendationsHybrid: async (productId, params) =>
+    api.get(ApiConstant.products.getRecommendationsHybrid(productId), {
+      params,
+    }),
+  exportAmazonCSV: async () =>
+    api.get(ApiConstant.products.exportAmazonCSV, {
+      responseType: "blob",
+    }),
 });
 
 export const {
@@ -25,4 +38,7 @@ export const {
   deleteProduct,
   createProduct,
   updateProduct,
+  getSimilarProducts,
+  getProductRecommendationsHybrid,
+  exportAmazonCSV,
 } = productApi();

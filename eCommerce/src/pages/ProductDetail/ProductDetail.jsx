@@ -1,25 +1,50 @@
-import React, { useState } from 'react'
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Rate, InputNumber, Button, Skeleton, Typography, Avatar, Pagination, Modal, Input } from 'antd'
-import { ShoppingCartOutlined, UserOutlined } from '@ant-design/icons'
-import toast from 'react-hot-toast'
-import { useForm, Controller } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import { getProductById, getProductReviews, addProductReview } from '../../apis/product.api'
-import { addToCart } from '../../apis/cart.api'
-import { reviewSchema } from '../../utils/reviewValidation'
+import React, { useState } from "react";
+import {
+  useParams,
+  useSearchParams,
+  useNavigate,
+  Link,
+} from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Rate,
+  InputNumber,
+  Button,
+  Skeleton,
+  Typography,
+  Avatar,
+  Pagination,
+  Modal,
+  Input,
+  Breadcrumb,
+  Card,
+} from "antd";
+import { ShoppingCartOutlined, UserOutlined } from "@ant-design/icons";
+import toast from "react-hot-toast";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import {
+  getProductById,
+  getProductReviews,
+  addProductReview,
+  getProductRecommendationsHybrid,
+} from "../../apis/product.api";
+import { addToCart } from "../../apis/cart.api";
+import { reviewSchema } from "../../utils/reviewValidation";
+import useAuth from "../../hooks/useAuth";
+import Product from "../../components/Product/Product";
 
-const { Title, Text, Paragraph } = Typography
+const { Title, Text, Paragraph } = Typography;
 
 const ProductDetail = () => {
-  const { productId } = useParams()
-  const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [quantity, setQuantity] = useState(1)
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
-  const reviewPage = Number(searchParams.get('page')) || 1
-  const queryClient = useQueryClient()
+  const { productId } = useParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [quantity, setQuantity] = useState(1);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const reviewPage = Number(searchParams.get("page")) || 1;
+  const queryClient = useQueryClient();
 
   const {
     control,
@@ -30,57 +55,70 @@ const ProductDetail = () => {
     resolver: yupResolver(reviewSchema),
     defaultValues: {
       rating: 0,
-      comment: '',
+      comment: "",
     },
-  })
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['product', productId],
+    queryKey: ["product", productId],
     queryFn: () => getProductById(productId),
     enabled: !!productId,
-  })
+  });
 
   const { data: reviewsData } = useQuery({
-    queryKey: ['reviews', productId, reviewPage],
-    queryFn: () => getProductReviews(productId, { pageNum: reviewPage, pageSize: 5 }),
+    queryKey: ["reviews", productId, reviewPage],
+    queryFn: () =>
+      getProductReviews(productId, { pageNum: reviewPage, pageSize: 5 }),
     enabled: !!productId,
     keepPreviousData: true,
-  })
+  });
+
+  const { data: recommendationsData, isLoading: isLoadingRecommendations } =
+    useQuery({
+      queryKey: ["recommendations", productId],
+      queryFn: () =>
+        getProductRecommendationsHybrid(productId, {
+          pageNum: 1,
+          pageSize: 48,
+        }),
+      enabled: !!productId && isAuthenticated, // Only fetch if productId and user is authenticated
+    });
 
   const addToCartMutation = useMutation({
     mutationFn: (body) => addToCart(body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cart'] })
-      toast.success('Added to cart')
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      toast.success("Added to cart");
     },
-  })
+  });
 
   const addReviewMutation = useMutation({
     mutationFn: (data) => addProductReview(productId, data),
     onSuccess: () => {
-      toast.success('Review submitted successfully')
-      setIsReviewModalOpen(false)
-      reset()
-      queryClient.invalidateQueries({ queryKey: ['reviews', productId] })
-      queryClient.invalidateQueries({ queryKey: ['product', productId] })
+      toast.success("Review submitted successfully");
+      setIsReviewModalOpen(false);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ["reviews", productId] });
+      queryClient.invalidateQueries({ queryKey: ["product", productId] });
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Failed to submit review')
+      toast.error(error.response?.data?.message || "Failed to submit review");
     },
-  })
+  });
 
   const handleBuyNow = async () => {
     try {
-      await addToCartMutation.mutateAsync({ productId, quantity })
-      navigate('/cart', { state: { selectedProductId: productId } })
+      await addToCartMutation.mutateAsync({ productId, quantity });
+      navigate("/cart", { state: { selectedProductId: productId } });
     } catch (error) {
       // Error handled by mutation onError
     }
-  }
+  };
 
-  const product = data?.data
-  const reviews = reviewsData?.data?.items || []
-  const totalReviews = reviewsData?.data?.meta?.totalElements || 0
+  const product = data?.data;
+  const reviews = reviewsData?.data?.items || [];
+  const totalReviews = reviewsData?.data?.meta?.totalElements || 0;
+  const recommendations = recommendationsData?.data?.items || [];
 
   if (isLoading) {
     return (
@@ -94,13 +132,18 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
-  if (!product) return null
+  if (!product) return null;
 
   return (
     <div className="container mx-auto py-8 px-4 bg-white mt-4 rounded-sm shadow-sm">
+      <div className="mb-4">
+        <Breadcrumb
+          items={product.categoryPath?.split("|").map((c) => ({ title: c }))}
+        />
+      </div>
       <div className="flex flex-col md:flex-row gap-8">
         {/* Left Side - Image */}
         <div className="w-full md:w-[35%]">
@@ -200,14 +243,20 @@ const ProductDetail = () => {
       <div className="mt-8 border-t pt-4">
         <Title level={4}>Product Description</Title>
         <Paragraph className="whitespace-pre-line text-gray-600 text-lg">
-          {product.description?.replace(/\|/g, '\n✔️ ')}
+          {product.description?.replace(/\|/g, "\n✔️ ")}
         </Paragraph>
       </div>
 
       <div className="mt-8 border-t pt-4">
         <div className="flex items-center justify-between">
-          <Title level={4} className="!mb-0">Product Reviews</Title>
-          <Button type="primary" onClick={() => setIsReviewModalOpen(true)} className="bg-[#ee4d2d]">
+          <Title level={4} className="!mb-0">
+            Product Reviews
+          </Title>
+          <Button
+            type="primary"
+            onClick={() => setIsReviewModalOpen(true)}
+            className="bg-[#ee4d2d]"
+          >
             Write a Review
           </Button>
         </div>
@@ -215,30 +264,40 @@ const ProductDetail = () => {
           {reviews.length > 0 ? (
             <>
               {reviews.map((review) => (
-              <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <Avatar icon={<UserOutlined />} size="small" />
-                  <Text strong>{review.userFullName}</Text>
+                <div
+                  key={review.id}
+                  className="border-b border-gray-100 pb-6 last:border-0"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Avatar icon={<UserOutlined />} size="small" />
+                    <Text strong>{review.userFullName}</Text>
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Rate
+                      disabled
+                      defaultValue={review.rating}
+                      style={{ fontSize: 14 }}
+                    />
+                    <Text type="secondary" className="text-xs">
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </Text>
+                  </div>
+                  {review.comment && (
+                    <Paragraph className="text-gray-600 mb-0">
+                      {review.comment}
+                    </Paragraph>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Rate disabled defaultValue={review.rating} style={{ fontSize: 14 }} />
-                  <Text type="secondary" className="text-xs">
-                    {new Date(review.createdAt).toLocaleDateString()}
-                  </Text>
-                </div>
-                {review.comment && <Paragraph className="text-gray-600 mb-0">{review.comment}</Paragraph>}
-              </div>
-            ))
-              }
+              ))}
               <div className="flex justify-end">
                 <Pagination
                   current={reviewPage}
                   pageSize={5}
                   total={totalReviews}
                   onChange={(page) => {
-                    const newParams = new URLSearchParams(searchParams)
-                    newParams.set('page', page)
-                    setSearchParams(newParams)
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set("page", page);
+                    setSearchParams(newParams);
                   }}
                   showSizeChanger={false}
                 />
@@ -250,16 +309,85 @@ const ProductDetail = () => {
         </div>
       </div>
 
+      <div className="mt-8 border-t pt-8">
+        {isAuthenticated && <Title level={4}>You Might Also Like</Title>}
+        {isLoadingRecommendations ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {Array.from({ length: 12 }).map((_, index) => (
+              <Card key={index} loading className="shadow-sm" />
+            ))}
+          </div>
+        ) : (
+          <>
+            {isAuthenticated && (
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                {recommendations.map((item) => {
+                  const recommendedProduct = {
+                    id: item.productId,
+                    name: item.productName,
+                    imageUrl: item.imgLink,
+                    price: item.discountedPrice,
+                    averageRating: item.rating,
+                    discountPercentage:
+                      item.actualPrice > 0 &&
+                      item.actualPrice > item.discountedPrice
+                        ? Math.round(
+                            ((item.actualPrice - item.discountedPrice) /
+                              item.actualPrice) *
+                              100
+                          )
+                        : 0,
+                  };
+                  return (
+                    <Product
+                      key={item.productId}
+                      product={recommendedProduct}
+                    />
+                  );
+                })}
+              </div>
+            )}
+            {recommendations.length > 0 && (
+              <div className="mt-8 text-center">
+                <Link
+                  to={`/products/${productId}/recommendations`}
+                  onClick={() => window.scrollTo(0, 0)}
+                >
+                  <Button type="default" size="large">
+                    Watch More
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="mt-8 text-center">
+        {!isAuthenticated && (
+          <Link
+            to={`/products/${productId}/similar`}
+            onClick={() => window.scrollTo(0, 0)}
+          >
+            <Button type="default" size="large">
+              See Similar Products
+            </Button>
+          </Link>
+        )}
+      </div>
       <Modal
         title="Write a Review"
         open={isReviewModalOpen}
         onCancel={() => {
-          setIsReviewModalOpen(false)
-          reset()
+          setIsReviewModalOpen(false);
+          reset();
         }}
         footer={null}
       >
-        <form onSubmit={handleSubmit((data) => addReviewMutation.mutate(data))} className="flex flex-col gap-4">
+        <form
+          onSubmit={handleSubmit((data) => addReviewMutation.mutate(data))}
+          className="flex flex-col gap-4"
+        >
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Rating</label>
             <Controller
@@ -267,24 +395,43 @@ const ProductDetail = () => {
               control={control}
               render={({ field }) => <Rate {...field} />}
             />
-            {errors.rating && <span className="text-xs text-red-500">{errors.rating.message}</span>}
+            {errors.rating && (
+              <span className="text-xs text-red-500">
+                {errors.rating.message}
+              </span>
+            )}
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-gray-700">Comment</label>
             <Controller
               name="comment"
               control={control}
-              render={({ field }) => <Input.TextArea {...field} rows={4} status={errors.comment ? 'error' : ''} />}
+              render={({ field }) => (
+                <Input.TextArea
+                  {...field}
+                  rows={4}
+                  status={errors.comment ? "error" : ""}
+                />
+              )}
             />
-            {errors.comment && <span className="text-xs text-red-500">{errors.comment.message}</span>}
+            {errors.comment && (
+              <span className="text-xs text-red-500">
+                {errors.comment.message}
+              </span>
+            )}
           </div>
-          <Button type="primary" htmlType="submit" loading={addReviewMutation.isPending} className="w-full bg-[#ee4d2d]">
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={addReviewMutation.isPending}
+            className="w-full bg-[#ee4d2d]"
+          >
             Submit Review
           </Button>
         </form>
       </Modal>
     </div>
-  )
-}
+  );
+};
 
-export default ProductDetail
+export default ProductDetail;

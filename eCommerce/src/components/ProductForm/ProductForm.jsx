@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import {
@@ -12,8 +12,9 @@ import {
   Image,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
+import useDebounce from "../../hooks/useDebounce";
 import { useQuery } from "@tanstack/react-query";
-import { getCategoriesWithProducts } from "../../apis/category.api";
+import { getLeafCategories } from "../../apis/category.api";
 import { productSchema } from "../../utils/productValidation";
 
 const ProductForm = ({ open, onCancel, onSubmit, initialValues, loading }) => {
@@ -31,22 +32,19 @@ const ProductForm = ({ open, onCancel, onSubmit, initialValues, loading }) => {
 
   const imageFile = watch("image");
 
+  const [keyword, setKeyword] = useState("");
+  const debouncedKeyword = useDebounce(keyword, 500);
+
   const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
-    queryKey: ["categories", "with-products"],
-    queryFn: getCategoriesWithProducts,
+    queryKey: ["categories-leaf", debouncedKeyword],
+    queryFn: () => getLeafCategories({ keyword: debouncedKeyword }),
   });
 
   useEffect(() => {
     if (open) {
       if (initialValues) {
-        const categoryId =
-          initialValues.categoryId ||
-          categoriesData?.data.find(
-            (c) => c.name === initialValues.categoryName
-          )?.id;
         reset({
           ...initialValues,
-          categoryId,
           image: null,
         });
       } else {
@@ -68,6 +66,7 @@ const ProductForm = ({ open, onCancel, onSubmit, initialValues, loading }) => {
 
     const productData = { ...data };
     delete productData.image;
+
     formData.append(
       "data",
       new Blob([JSON.stringify(productData)], { type: "application/json" })
@@ -188,6 +187,10 @@ const ProductForm = ({ open, onCancel, onSubmit, initialValues, loading }) => {
                   {...field}
                   loading={isLoadingCategories}
                   placeholder="Select a category"
+                  showSearch
+                  filterOption={false}
+                  onSearch={setKeyword}
+                  value={field.value}
                   options={categoriesData?.data?.map((cat) => ({
                     value: cat.id,
                     label: cat.name,
@@ -229,6 +232,9 @@ const ProductForm = ({ open, onCancel, onSubmit, initialValues, loading }) => {
               </Upload>
             )}
           />
+          {errors.image && (
+            <span className="text-xs text-red-500">{errors.image.message}</span>
+          )}
         </Form.Item>
       </Form>
     </Modal>
