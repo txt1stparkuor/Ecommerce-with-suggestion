@@ -11,6 +11,8 @@ import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute";
 import SimilarProducts from "../pages/SimilarProducts/SimilarProducts";
 import ProductRecommendations from "../pages/ProductRecommendations/ProductRecommendations";
 import UserRecommendations from "../pages/UserRecommendations/UserRecommendations";
+import MyAccount from "../pages/MyAccount/MyAccount";
+import Profile from "../pages/Profile/Profile";
 
 const userRoutes = [
   {
@@ -59,6 +61,16 @@ const userRoutes = [
           {
             path: "orders/:orderId",
             element: <OrderDetail />,
+          },
+          {
+            path: "user/account",
+            element: <MyAccount />,
+            children: [
+              {
+                path: "profile",
+                element: <Profile />,
+              },
+            ],
           },
         ]
       },
