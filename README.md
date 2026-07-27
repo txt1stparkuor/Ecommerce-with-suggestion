@@ -50,22 +50,3 @@ The application follows a decoupled, service-oriented architecture.
 * **Functionality:** Ingests e-commerce data (seeded via Flyway) to compute and serve hybrid product recommendations based on user interactions and product similarities.
 
 ---
-
-## 📸 System Preview
-
-| Storefront & Product Discovery | AI Product Recommendations |
-| :---: | :---: |
-| <img src="https://placehold.co/600x400/png?text=Add+Screenshot+Here" width="400"/> | <img src="https://placehold.co/600x400/png?text=Add+Screenshot+Here" width="400"/> |
-| **Shopping Cart & Checkout** | **Admin Dashboard** |
-| <img src="https://placehold.co/600x400/png?text=Add+Screenshot+Here" width="400"/> | <img src="https://placehold.co/600x400/png?text=Add+Screenshot+Here" width="400"/> |
-
----
-
-## 🚀 Getting Started
-
-To run the full ecosystem locally, you will need to start the services in the following order:
-
-1. **Database:** Set up a local MySQL instance and configure the credentials in the Backend `application.yml`.
-2. **Backend:** Clone the [Backend Repo](https://github.com/txt1stparkuor/Ecommerce-with-suggestion-BE/tree/develop) and run via Maven. *Note: Flyway will automatically execute migrations to seed the database upon startup.*
-3. **Recommendation Service:** Clone the [Python Repo](https://github.com/txt1stparkuor/Ecommerce-Amazon-Recommendation-Service) and follow its internal instructions to connect it to the seeded MySQL database.
-4. **Frontend:** Clone the [Frontend Repo](https://github.com/txt1stparkuor/Ecommerce-with-suggestion-FE/tree/develop), run `npm install`, set your environment variables to point to the Spring Boot API, and run `npm run dev` (or build the Docker/Nginx container).
