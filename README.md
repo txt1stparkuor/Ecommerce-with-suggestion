@@ -6,11 +6,11 @@
 
 This repository serves as the central architectural overview of the system. The project is divided into three distinct codebases. Please visit the specific repositories below to view the source code.
 
-### 📌 Repository Links
+### 📌 Links
 * 💻 **Frontend Client (React):** [txt1stparkuor/Ecommerce-with-suggestion-FE](https://github.com/txt1stparkuor/Ecommerce-with-suggestion-FE/tree/develop)
 * ⚙️ **Backend Core API (Spring Boot):** [txt1stparkuor/Ecommerce-with-suggestion-BE](https://github.com/txt1stparkuor/Ecommerce-with-suggestion-BE/tree/develop)
 * 🧠 **Recommendation Engine (Python):** [txt1stparkuor/Ecommerce-Amazon-Recommendation-Service](https://github.com/txt1stparkuor/Ecommerce-Amazon-Recommendation-Service)
-* 🪧 **Demo website :** [https://ecommerce-with-suggestion-fe.vercel.app/](https://ecommerce-with-suggestion-fe.vercel.app/)
+* 🪧 **Demo website :** [https://ecommerce-with-suggestion-fe.vercel.app/](https://ecommerce-with-suggestion-fe.vercel.app/) (Because of Render free tier, the project might take 3-4 minutes to wake up)
 ---
 
 ## 📖 About The Project
