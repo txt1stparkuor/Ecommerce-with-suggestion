@@ -12,6 +12,16 @@ This repository serves as the central architectural overview of the system. The 
 * 🧠 **Recommendation Engine (Python):** [txt1stparkuor/Ecommerce-Amazon-Recommendation-Service](https://github.com/txt1stparkuor/Ecommerce-Amazon-Recommendation-Service)
 * 🪧 **Demo website :** [https://ecommerce-with-suggestion-fe.vercel.app/](https://ecommerce-with-suggestion-fe.vercel.app/) (Because of Render free tier, the project might take 3-4 minutes to wake up)
 ---
+### 🔑 Demo Credentials
+
+To explore the application without creating a new account, you can use the pre-configured credentials below:
+
+| Role | Email | Password | Permissions |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@gmail.com` | `admin` | Full dashboard access, product management, order processing |
+| **Customer** | `AF355FTXYAKFH5NYPRTE7SL3WO3Q@example.com` | `svHAUI2026` | Shopping, cart management, checkout with idempotency keys, reviews |
+
+---
 
 ## 📖 About The Project
 
@@ -64,17 +74,6 @@ The application follows a decoupled, service-oriented architecture.
 | **Primary Database** | **TiDB Cloud** (Serverless MySQL 8.0) | Managed Cloud Cluster|
 | **Distributed Cache** | **Upstash Redis** (Serverless TLS) | Low-latency caching layer for recommendations |
 | **Media & Asset Storage** | **Cloudinary** | Cloud image CDN for product catalogs |
-
----
-
-### 🔑 Demo Credentials
-
-To explore the application without creating a new account, you can use the pre-configured credentials below:
-
-| Role | Email | Password | Permissions |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@gmail.com` | `admin` | Full dashboard access, product management, order processing |
-| **Customer** | `AF355FTXYAKFH5NYPRTE7SL3WO3Q@example.com` | `svHAUI2026` | Shopping, cart management, checkout with idempotency keys, reviews |
 
 ---
 
